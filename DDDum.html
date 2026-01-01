@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Frozen Grave: 2041</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --accent-red: #bb0000;
+            --ice-blue: #a5f3fc;
+        }
+
+        /* 초기 설정: 스크롤 잠금 */
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            color: #fff;
+            font-family: 'Pretendard', sans-serif;
+            overflow: hidden; /* 인트로 중 스크롤 절대 금지 */
+        }
+
+        /* 섹션 공통 */
+        section {
+            position: relative;
+            min-height: 100vh;
+            padding: 80px 10%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: 1px solid #222;
+        }
+
+        h2 {
+            font-size: 2.5rem; color: var(--ice-blue); margin-bottom: 40px;
+            border-left: 5px solid var(--accent-red); padding-left: 20px;
+            text-transform: uppercase;
+        }
+
+        /* 1. 인트로 화면 */
+        .intro-screen {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background: #000; z-index: 9999;
+            transition: opacity 1s ease;
+        }
+        .intro-text {
+            font-size: 1.5rem; line-height: 2; text-align: center; color: #fff;
+            animation: textFade 4s forwards; /* 4초 동안 애니메이션 */
+        }
+        @keyframes textFade {
+            0% { opacity: 0; transform: translateY(20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* 2. 메인 컨테이너 (처음엔 숨김) */
+        #mainContainer {
+            display: none; /* 공간 차지 X */
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        /* 3. 메인 섹션 (배경 + 눈) */
+        #main {
+            /* 어두운 오버레이 + 배경 이미지 */
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.4)), 
+                        url('https://images.unsplash.com/photo-1548263594-a71ea65a85b2?q=80&w=2000&auto=format&fit=crop') no-repeat center center/cover;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 눈 캔버스: 메인 섹션 안에 절대 위치 */
+        #snow-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .main-title-box {
+            position: relative; z-index: 10;
+            text-align: center;
+            text-shadow: 0 0 30px rgba(0,0,0,1);
+        }
+        .main-title-box h1 { font-size: 4rem; margin: 0; color: #fff; letter-spacing: 5px; }
+        .main-title-box p { font-size: 1.2rem; color: var(--ice-blue); margin-top: 15px; letter-spacing: 2px; }
+
+        /* 4. 지도 섹션 */
+        .map-layout { display: flex; gap: 40px; height: 600px; }
+        .map-area {
+            flex: 2; background: #111; border: 1px solid #333; position: relative;
+            background-image: radial-gradient(#333 1px, transparent 1px); background-size: 30px 30px;
+        }
+        .map-pin {
+            position: absolute; width: 24px; height: 24px;
+            background: var(--accent-red); border-radius: 50%;
+            cursor: pointer; box-shadow: 0 0 20px var(--accent-red);
+            transition: transform 0.2s;
+            border: 2px solid #fff;
+        }
+        .map-pin:hover { transform: scale(1.2); }
+        
+        .map-interface {
+            flex: 1; background: rgba(20,20,20,0.9); border: 1px solid var(--ice-blue);
+            padding: 30px; display: flex; flex-direction: column;
+        }
+
+        /* 5. 캐릭터 섹션 */
+        .char-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .toggle-switch { display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--ice-blue); }
+        
+        .character-slider {
+            display: flex; gap: 40px; overflow-x: auto; padding: 60px 20px;
+            scroll-behavior: smooth;
+        }
+        /* 스크롤바 커스텀 */
+        .character-slider::-webkit-scrollbar { height: 10px; }
+        .character-slider::-webkit-scrollbar-track { background: #111; }
+        .character-slider::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
+
+        .char-card {
+            min-width: 300px; height: 450px; background: #0f0f0f; border: 1px solid #333;
+            padding: 30px; display: flex; flex-direction: column; justify-content: flex-end;
+            transition: all 0.5s ease; opacity: 0.3; transform: scale(0.9); flex-shrink: 0;
+        }
+        .char-card.active {
+            opacity: 1; transform: scale(1); border-color: var(--ice-blue);
+            box-shadow: 0 0 40px rgba(165, 243, 252, 0.1); background: #1a1a1a;
+        }
+        .char-name { font-size: 2rem; margin: 0 0 10px 0; color: #fff; }
+        .char-role { color: var(--accent-red); font-weight: bold; margin-bottom: 20px; }
+        .char-desc { font-size: 0.95rem; color: #bbb; line-height: 1.6; }
+
+    </style>
+</head>
+<body>
+
+    <div class="intro-screen" id="intro">
+        <div class="intro-text">
+            그래, 꿈도 희망도 2040년에 묻어두고 왔어.<br>
+            그곳이 나의 겨울이야.
+        </div>
+    </div>
+
+    <div id="mainContainer">
+        
+        <section id="main">
+            <canvas id="snow-canvas"></canvas> <div class="main-title-box">
+                <h1>THE FROZEN GRAVE</h1>
+                <p>2041 SEOUL WINTER APOCALYPSE</p>
+            </div>
+        </section>
+
+        <section id="world-map">
+            <h2>Operations Map</h2>
+            <div class="map-layout">
+                <div class="map-area">
+                    <div class="map-pin" style="top: 30%; left: 40%;" onclick="updateMapInfo('A')"></div>
+                    <div class="map-pin" style="top: 60%; left: 70%;" onclick="updateMapInfo('B')"></div>
+                    <div class="map-pin" style="top: 50%; left: 20%;" onclick="updateMapInfo('C')"></div>
+                    <div style="position:absolute; bottom:20px; right:20px; color:#555;">[MAP VISUAL]</div>
+                </div>
+                <div class="map-interface">
+                    <h3 style="color:var(--ice-blue); border-bottom:1px solid #444; padding-bottom:15px;">SECTOR INFO</h3>
+                    <div id="infoContent" style="margin-top:20px;">
+                        <p style="color:#666; text-align:center; padding-top:50px;">
+                            지도상의 붉은 점(Pin)을 선택하여<br>지역 정보를 수신하십시오.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="characters">
+            <div class="char-controls">
+                <h2>Survivors Record</h2>
+                <div class="toggle-switch" onclick="toggleAutoPlay()">
+                    <span id="autoLabel">AUTO: ON</span>
+                    <input type="checkbox" id="autoToggle" checked style="accent-color: var(--accent-red);">
+                </div>
+            </div>
+            <div class="character-slider" id="charSlider"></div>
+        </section>
+
+    </div>
+
+    <script>
+        // === 1. 화면 전환 및 초기화 (핵심 수정 부분) ===
+        window.onload = function() {
+            setTimeout(() => {
+                const intro = document.getElementById('intro');
+                const mainContainer = document.getElementById('mainContainer');
+
+                // 1) 인트로 페이드 아웃
+                intro.style.opacity = '0';
+
+                // 2) 메인 컨테이너 표시 (공간 확보)
+                mainContainer.style.display = 'block';
+
+                // 3) 약간의 딜레이 후 내용 표시 및 기능 활성화
+                setTimeout(() => {
+                    // 투명도 복구
+                    mainContainer.style.opacity = '1';
+                    
+                    // 스크롤 잠금 해제 (HTML, BODY 모두 적용)
+                    document.body.style.overflowY = 'auto';
+                    document.documentElement.style.overflowY = 'auto';
+                    document.body.style.overflowX = 'hidden'; // 가로 스크롤 방지
+
+                    // 인트로 DOM 제거 (클릭 방해 방지)
+                    intro.style.display = 'none';
+
+                    // ★ 눈 효과 시작 (화면이 보인 후에 실행해야 좌표가 맞음)
+                    startSnowEffect();
+
+                }, 500); // 0.5초 딜레이
+
+            }, 4000); // 인트로 텍스트 시간(4초) 후 실행
+        };
+
+        // === 2. 눈 내리는 효과 (캔버스) ===
+        function startSnowEffect() {
+            const canvas = document.getElementById('snow-canvas');
+            const ctx = canvas.getContext('2d');
+            const mainSection = document.getElementById('main');
+
+            // 캔버스 크기를 메인 섹션 크기에 맞춤
+            let width = mainSection.clientWidth;
+            let height = mainSection.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            const particles = [];
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    v: Math.random() * 1.5 + 0.5, // 속도: 천천히
+                    len: Math.random() * 2 + 1    // 눈 길이
+                });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 1;
+                
+                ctx.beginPath();
+                particles.forEach(p => {
+                    ctx.moveTo(p.x, p.y);
+                    // 싸래기 눈 (왼쪽 -> 오른쪽 대각선)
+                    ctx.lineTo(p.x + p.len * 3, p.y + p.len);
+                    
+                    p.x += p.v * 2;
+                    p.y += p.v;
+
+                    // 화면 밖으로 나가면 반대편에서 재생성
+                    if(p.x > width) p.x = -10;
+                    if(p.y > height) p.y = Math.random() * height; // 자연스럽게
+                });
+                ctx.stroke();
+                requestAnimationFrame(draw);
+            }
+            draw();
+
+            // 창 크기 조절 대응
+            window.addEventListener('resize', () => {
+                width = mainSection.clientWidth;
+                height = mainSection.clientHeight;
+                canvas.width = width;
+                canvas.height = height;
+            });
+        }
+
+        // === 3. 지도 데이터 ===
+        const mapData = {
+            'A': { title: 'SEOUL RUINS', temp: '-45℃', risk: 'EXTREME', desc: '무너진 고층 빌딩 숲. 감염체 군집 확인됨. 진입 금지 구역.' },
+            'B': { title: 'MRC OUTPOST #3', temp: '-5℃', risk: 'SAFE', desc: '지열 발전기가 가동 중인 생존자 거점. 거래 가능.' },
+            'C': { title: 'FROZEN HAN-RIVER', temp: '-30℃', risk: 'HIGH', desc: '얼어붙은 강 위로 약탈자 세력이 이동 중. 은폐 필요.' }
+        };
+
+        function updateMapInfo(id) {
+            const data = mapData[id];
+            const content = document.getElementById('infoContent');
+            content.innerHTML = `
+                <div style="margin-bottom:10px; font-size:0.9rem; color:#888;">AREA NAME</div>
+                <div style="font-size:1.5rem; font-weight:bold; color:#fff; margin-bottom:20px;">${data.title}</div>
+                
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <span style="color:#888;">TEMP</span>
+                    <span style="color:#00d4ff; font-family:monospace; font-size:1.2rem;">${data.temp}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                    <span style="color:#888;">RISK</span>
+                    <span style="color:${data.risk === 'SAFE' ? '#4caf50' : '#bb0000'}; font-weight:bold;">${data.risk}</span>
+                </div>
+                <hr style="border-color:#333; margin-bottom:20px;">
+                <p style="color:#ccc; line-height:1.6;">${data.desc}</p>
+            `;
+        }
+
+        // === 4. 캐릭터 슬라이더 ===
+        const charData = [
+            { name: '주인공', role: 'SURVIVOR', desc: '모든 것을 잃고 겨울 속에 던져진 자.' },
+            { name: 'Dr. Choi', role: 'MEDIC', desc: 'MRC 기지의 유일한 의료 담당관.' },
+            { name: 'Captain Han', role: 'SOLDIER', desc: '옛 수도방위사령부의 잔존 병력.' },
+            { name: 'Anna', role: 'SCAVENGER', desc: '폐허 속에서 보물을 찾는 아이.' },
+            { name: 'Unknown', role: 'HOSTILE', desc: '약탈자 무리의 리더로 추정됨.' },
+            { name: 'Unit-7', role: 'ANDROID', desc: '구시대의 유산. 작동 불능 상태.' },
+            { name: 'Watcher', role: '???', desc: '눈보라 속에서 우리를 지켜보는 존재.' }
+        ];
+
+        const slider = document.getElementById('charSlider');
+        charData.forEach((c, i) => {
+            const card = document.createElement('div');
+            card.className = `char-card ${i===0?'active':''}`;
+            card.id = `card-${i}`;
+            card.onclick = () => manualSelect(i);
+            card.innerHTML = `
+                <h3 class="char-name">${c.name}</h3>
+                <div class="char-role">${c.role}</div>
+                <p class="char-desc">${c.desc}</p>
+            `;
+            slider.appendChild(card);
+        });
+
+        let currentIdx = 0;
+        let isAuto = true;
+        let interval;
+
+        function updateSlider() {
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
+            const target = document.getElementById(`card-${currentIdx}`);
+            target.classList.add('active');
+            
+            // 카드가 중앙에 오도록 스크롤 이동
+            const center = target.offsetLeft - (slider.clientWidth / 2) + (target.clientWidth / 2);
+            slider.scrollTo({ left: center, behavior: 'smooth' });
+        }
+
+        function nextSlide() {
+            currentIdx = (currentIdx + 1) % charData.length;
+            updateSlider();
+        }
+
+        function manualSelect(idx) {
+            currentIdx = idx;
+            updateSlider();
+            // 수동 클릭 시 잠시 멈추고 싶으면 아래 주석 해제
+            // isAuto = false; document.getElementById('autoToggle').checked = false; clearInterval(interval);
+        }
+
+        function toggleAutoPlay() {
+            isAuto = !isAuto;
+            document.getElementById('autoLabel').innerText = isAuto ? "AUTO: ON" : "AUTO: OFF";
+            if(isAuto) startAuto();
+            else clearInterval(interval);
+        }
+
+        function startAuto() {
+            clearInterval(interval);
+            interval = setInterval(() => {
+                if(isAuto) nextSlide();
+            }, 3000);
+        }
+        startAuto();
+
+    </script>
+</body>
+</html>
